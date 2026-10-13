@@ -104,22 +104,30 @@ function SM_BindCharacterSavedVars()
 	SM_C_SUPER = SM_C_SUPER or {};
 	SM_C_ACTION_SUPER = SM_C_ACTION_SUPER or {};
 
+	-- Keep account SV tables aside so logout can write them back unchanged.
 	SM_ACCOUNT_SNAPSHOT_EXTEND = SM_EXTEND;
 	SM_ACCOUNT_SNAPSHOT_SUPER = SM_SUPER;
 	SM_ACCOUNT_SNAPSHOT_ACTION_SUPER = SM_ACTION_SUPER;
 
+	-- Import this character's old account-nested action map once, if C is empty.
+	local player = SM_PlayerKey();
+	local accountAction = SM_ACTION_SUPER and SM_ACTION_SUPER[player];
+	if ( (not SM_TableHasEntries(SM_C_ACTION_SUPER)) and accountAction and SM_TableHasEntries(accountAction) ) then
+		for k, v in pairs(accountAction) do
+			SM_C_ACTION_SUPER[tonumber(k) or k] = v;
+		end
+	end
+
+	-- Live references: edits go straight into per-character SavedVariables.
 	SM_EXTEND = SM_C_EXTEND;
 	SM_SUPER = SM_C_SUPER;
-	SM_ACTION_SUPER = SM_C_ACTION_SUPER;
-	SM_ACTION = SM_ACTION_SUPER;
+	SM_ACTION = SM_C_ACTION_SUPER;
 	SM_BOUND = 1;
 end
 
 function SM_WritebackCharacterSavedVars()
-	SM_C_EXTEND = SM_EXTEND;
-	SM_C_SUPER = SM_SUPER;
-	SM_C_ACTION_SUPER = SM_ACTION;
-
+	-- SM_C_* already hold runtime data (same table refs). Only restore account
+	-- globals so the account SavedVariables file is not polluted.
 	if ( SM_ACCOUNT_SNAPSHOT_EXTEND ~= nil ) then
 		SM_EXTEND = SM_ACCOUNT_SNAPSHOT_EXTEND;
 	end

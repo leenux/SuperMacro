@@ -146,7 +146,8 @@ function GetActionCooldown( actionid )
 			return oldGetActionCooldown( actionid );
 		end
 
-		local buttonName = this:GetName() or ("BActionButton"..actionid);	-- The part after 'or' is to support Bongos [Fixed by Threewords]
+		-- Original icon refresh path (readme: checkCooldown must be on for auto-replace icons).
+		local buttonName = (this and this.GetName and this:GetName()) or ("BActionButton"..actionid);
 
 		local macroname, pic;
 		if ( this ) then
@@ -157,6 +158,7 @@ function GetActionCooldown( actionid )
 			pic = getglobal(buttonName.."Icon");
 			if ( pic ) then
 				pic:SetTexture(icon);
+				pic:Show();
 			end
 		end
 

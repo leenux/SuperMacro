@@ -107,10 +107,14 @@ end
 function GetActionTexture(id)
 	if ( SM_ACTION[id] ) then
 		local texture=GetSuperMacroInfo(SM_ACTION[id], "texture");
-		return texture;
-	else
-		return oldGetActionTexture(id);
+		-- Original returns nil here when Super data is not ready yet; ActionButton_Update
+		-- then hides the icon until stance/page refresh. Fall back to the placeholder
+		-- macro texture so the button stays visible (same end state as after stance swap).
+		if ( texture ) then
+			return texture;
+		end
 	end
+	return oldGetActionTexture(id);
 end
 
 function SuperMacro_UpdateAction(oldsuper, newsuper)
