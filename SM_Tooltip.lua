@@ -127,6 +127,13 @@ end
 local oldGetActionCooldown = GetActionCooldown;
 function GetActionCooldown( actionid )
 	-- start, duration, enable
+	-- Orphan SM_ACTION / empty slots must not paint icons (fake zBar icons → wrong drag).
+	if ( not actionid or not HasAction(actionid) ) then
+		if ( SM_ACTION and SM_ACTION[actionid] and not HasAction(actionid) ) then
+			SM_ACTION[actionid] = nil;
+		end
+		return oldGetActionCooldown( actionid );
+	end
 	local macro=GetActionText(actionid);
 	if ( macro and SM_VARS.checkCooldown==1 ) then
 		local name, icon, body = GetMacroInfo(GetMacroIndexByName(macro));
@@ -147,10 +154,13 @@ function GetActionCooldown( actionid )
 		end
 
 		-- Original icon refresh path (readme: checkCooldown must be on for auto-replace icons).
+		-- Only paint `this` when it owns actionid — otherwise GetActionCooldown(1) can
+		-- stamp 主1 icons onto zBar1 while `this` still points at a zBar button.
 		local buttonName = (this and this.GetName and this:GetName()) or ("BActionButton"..actionid);
+		local own = this and this.GetName and ActionButton_GetPagedID and (ActionButton_GetPagedID(this) == actionid);
 
 		local macroname, pic;
-		if ( this ) then
+		if ( this and own ) then
 			macroname=getglobal(buttonName.."Name");
 			if ( macroname ) then
 				macroname:SetText(name);
