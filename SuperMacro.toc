@@ -6,6 +6,7 @@
 ## First created: Mar 2005
 ## OptionalDeps: 
 ## SavedVariables: SM_VARS SM_EXTEND SM_ACTION_SUPER SM_SUPER
+## SavedVariablesPerCharacter: SM_C_EXTEND SM_C_ACTION_SUPER SM_C_SUPER SM_C_MIGRATED
 ##..\..\FrameXML\Fonts.xml
 ##..\..\FrameXML\UIPanelTemplates.xml
 ##..\..\FrameXML\ClassTrainerFrameTemplates.xml

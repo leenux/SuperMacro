@@ -1,5 +1,11 @@
+Maintained fork: https://github.com/leenux/SuperMacro
+Compatible with World of Warcraft 1.12.1 and Turtle WoW 1.18.1 (Interface 11200).
+
 This fork changes FindBuff() to match the buff/debuff caps modified by Turtle WoW.
 *USE WITH SUPERWOW ONLY
+
+leenux changes: Super / Extend / action Super mappings are SavedVariablesPerCharacter
+(SM_C_*); SM_VARS stays account-wide. See "SavedVariables layout (v3.19+)" below.
 
 3.19 SuperWoW 511 character length macro support - Torio 
 3.18 new improved user interface by Horu:
@@ -221,6 +227,14 @@ Similarly, you can Shift-click spells from the spell book to insert /cast <spell
 
 ***** ** Ingame extend LUA code editor and SM_EXTEND.lua
 The right edit box in SuperMacro frame is for extended codes that is associated with that macro. This is saved in SavedVariables under SM_EXTEND table, which is not associated with SM_EXTEND.lua in any way. Either way, these extended codes can be accessed by all macros, usually in the form of functions.
+
+***** ** SavedVariables layout (v3.19+)
+SM_VARS (UI options: font size, window size, minimap, etc.) remains account-wide.
+SM_SUPER, SM_EXTEND, and action-bar Super mappings are stored per character under
+SM_C_SUPER, SM_C_EXTEND, SM_C_ACTION_SUPER in:
+  WTF/Account/<account>/<realm>/<character>/SavedVariables/SuperMacro.lua
+On first login after upgrade, data is copied once from the old account SavedVariables
+into the current character (never overwrites character data that already exists).
 
 SM_EXTEND.lua does not come with the zip. If you choose to use this feature, you must create a text file and name it SM_EXTEND.lua . Any code you put in this file will be loaded when the addon is first loaded. Your code can be any length. However, if you edit this during playing, you have to reload UI for the changes to take effect.
 

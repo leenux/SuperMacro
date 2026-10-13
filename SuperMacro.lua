@@ -1,4 +1,4 @@
-SUPERMACRO_VERSION = "3.18";
+SUPERMACRO_VERSION = "3.19";
 UIPanelWindows["SuperMacroFrame"] = { area = "left", pushable = 7, whileDead = 1 };
 UIPanelWindows["SuperMacroOptionsFrame"] = { area = "left", pushable = 0, whileDead = 1 };
 MACRO_ROWS = 3;
@@ -38,6 +38,100 @@ SM_AliasFunctions.low=0;
 SM_AliasFunctions.high=0;
 SM_AliasFunctions[0]=function (body) return body; end
 
+function SM_TableHasEntries(t)
+	if ( type(t) ~= "table" ) then
+		return false;
+	end
+	for _ in pairs(t) do
+		return true;
+	end
+	return false;
+end
+
+function SM_DeepCopy(src)
+	if ( type(src) ~= "table" ) then
+		return src;
+	end
+	local dst = {};
+	for k, v in pairs(src) do
+		dst[SM_DeepCopy(k)] = SM_DeepCopy(v);
+	end
+	return dst;
+end
+
+function SM_PlayerKey()
+	return UnitName("player").." of "..GetRealmName();
+end
+
+-- One-time account -> character migration. Never overwrites existing character Super data.
+function SM_MigrateAccountToCharacter()
+	if ( SM_C_MIGRATED ) then
+		return;
+	end
+	if ( SM_TableHasEntries(SM_C_SUPER)
+		or SM_TableHasEntries(SM_C_EXTEND)
+		or SM_TableHasEntries(SM_C_ACTION_SUPER) ) then
+		SM_C_MIGRATED = 1;
+		return;
+	end
+	local hasAccount = SM_TableHasEntries(SM_SUPER)
+		or SM_TableHasEntries(SM_EXTEND)
+		or SM_TableHasEntries(SM_ACTION_SUPER);
+	if ( not hasAccount ) then
+		SM_C_EXTEND = SM_C_EXTEND or {};
+		SM_C_SUPER = SM_C_SUPER or {};
+		SM_C_ACTION_SUPER = SM_C_ACTION_SUPER or {};
+		SM_C_MIGRATED = 1;
+		return;
+	end
+	SM_C_EXTEND = SM_DeepCopy(SM_EXTEND or {});
+	SM_C_SUPER = SM_DeepCopy(SM_SUPER or {});
+	local player = SM_PlayerKey();
+	local actionSrc = SM_ACTION_SUPER and SM_ACTION_SUPER[player];
+	if ( actionSrc ) then
+		SM_C_ACTION_SUPER = SM_DeepCopy(actionSrc);
+	else
+		SM_C_ACTION_SUPER = {};
+	end
+	SM_C_MIGRATED = 1;
+end
+
+function SM_BindCharacterSavedVars()
+	if ( SM_BOUND ) then
+		return;
+	end
+	SM_C_EXTEND = SM_C_EXTEND or {};
+	SM_C_SUPER = SM_C_SUPER or {};
+	SM_C_ACTION_SUPER = SM_C_ACTION_SUPER or {};
+
+	SM_ACCOUNT_SNAPSHOT_EXTEND = SM_EXTEND;
+	SM_ACCOUNT_SNAPSHOT_SUPER = SM_SUPER;
+	SM_ACCOUNT_SNAPSHOT_ACTION_SUPER = SM_ACTION_SUPER;
+
+	SM_EXTEND = SM_C_EXTEND;
+	SM_SUPER = SM_C_SUPER;
+	SM_ACTION_SUPER = SM_C_ACTION_SUPER;
+	SM_ACTION = SM_ACTION_SUPER;
+	SM_BOUND = 1;
+end
+
+function SM_WritebackCharacterSavedVars()
+	SM_C_EXTEND = SM_EXTEND;
+	SM_C_SUPER = SM_SUPER;
+	SM_C_ACTION_SUPER = SM_ACTION;
+
+	if ( SM_ACCOUNT_SNAPSHOT_EXTEND ~= nil ) then
+		SM_EXTEND = SM_ACCOUNT_SNAPSHOT_EXTEND;
+	end
+	if ( SM_ACCOUNT_SNAPSHOT_SUPER ~= nil ) then
+		SM_SUPER = SM_ACCOUNT_SNAPSHOT_SUPER;
+	end
+	if ( SM_ACCOUNT_SNAPSHOT_ACTION_SUPER ~= nil ) then
+		SM_ACTION_SUPER = SM_ACCOUNT_SNAPSHOT_ACTION_SUPER;
+	end
+	SM_BOUND = nil;
+end
+
 local function OnDragStart() this:StartMoving() end
 local function OnDragStop() this:StopMovingOrSizing() end
 
@@ -52,6 +146,7 @@ function SuperMacroFrame_OnLoad()
 	this:RegisterEvent("TRADE_SKILL_SHOW");
 	this:RegisterEvent("CRAFT_SHOW");
 	this:RegisterEvent("PLAYER_ENTERING_WORLD");
+	this:RegisterEvent("PLAYER_LOGOUT");
 	lastActionUsed = nil;
 	SuperMacroFrame_SetAccountMacros();
 	SM_MACRO_ICON=SM_LoadMacroIcons();
@@ -580,6 +675,8 @@ function SuperMacroFrame_OnEvent(event)
 		end
 	end
 	if ( event=="VARIABLES_LOADED" ) then
+		SM_MigrateAccountToCharacter();
+		SM_BindCharacterSavedVars();
 		if ( not SM_VARS.hideAction ) then
 			SM_VARS.hideAction = 0;
 		end
@@ -635,11 +732,6 @@ function SuperMacroFrame_OnEvent(event)
 		ToggleSMWordWrap();
 		SuperMacroInitExtend()
 		SM_ORDERED=SortSuperMacroList();
-		local player=UnitName("player").." of "..GetRealmName();
-		if ( not SM_ACTION_SUPER[player] ) then
-			SM_ACTION_SUPER[player]={};
-		end
-		SM_ACTION=SM_ACTION_SUPER[player];
 		SM_UpdateActionSpell();
 
 		-- update alias replacement function
@@ -658,8 +750,8 @@ function SuperMacroFrame_OnEvent(event)
 	if ( event=="PLAYER_ENTERING_WORLD" ) then
 		SM_UpdateActionSpell();
 	end
-	if ( event=="PLAYER_LEAVING_WORLD" ) then
-		SM_ACTION_SUPER[player]=SM_ACTION;
+	if ( event=="PLAYER_LOGOUT" ) then
+		SM_WritebackCharacterSavedVars();
 	end
 end
 
